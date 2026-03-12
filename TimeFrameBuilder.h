@@ -19,6 +19,7 @@ public:
     struct OptionKey {
         static constexpr std::string_view NumSource            {"num-source"};
         static constexpr std::string_view BufferTimeoutInMs    {"buffer-timeout"};
+        static constexpr std::string_view BufferDepthLimit     {"buffer-depth-limit"};
         static constexpr std::string_view InputChannelName     {"in-chan-name"};
         static constexpr std::string_view OutputChannelName    {"out-chan-name"};
         static constexpr std::string_view DQMChannelName       {"dqm-chan-name"};      
@@ -26,6 +27,7 @@ public:
         static constexpr std::string_view PollTimeout          {"poll-timeout"};
         static constexpr std::string_view DecimationFactor     {"decimation-factor"};
         static constexpr std::string_view DecimationOffset     {"decimation-offset"};
+        static constexpr std::string_view DiscardOutput        {"discard-output"};
     };
 
     struct STFBuffer {
@@ -48,6 +50,7 @@ protected:
 private:
     int fNumSource {0};
     int fBufferTimeoutInMs {10000};
+    int fBufferDepthLimit {1000};
     std::string fInputChannelName;
     std::string fOutputChannelName;
     std::string fDQMChannelName;  
@@ -59,6 +62,7 @@ private:
     int fDecimatorNumberOfConnectedPeers {0};
     int fPollTimeoutMS    {0};
     uint64_t fNumSend {0};
+    bool fDiscardOutput;
 
     std::unordered_map<uint32_t, std::vector<STFBuffer>> fTFBuffer;
     //std::unordered_set<uint64_t> fDiscarded;

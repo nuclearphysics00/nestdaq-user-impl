@@ -50,7 +50,10 @@ void addCustomOptions(bpo::options_description &options)
         (opt::InProcMQLength.data(), bpo::value<std::string>()->default_value("1"), "in-process message queue length.")
         //
         (opt::MaxIteration.data(), bpo::value<std::string>()->default_value("0"),
-         "Number of iterations (if zero, no limitation is set)");
+         "Number of iterations (if zero, no limitation is set)")
+        (opt::WriteSleepInMilliSec.data(), bpo::value<std::string>()->default_value("0"),
+         "Write Sleep in msec")
+	;
     }
 
     {   // FileUtil's options ------------------------------
@@ -229,6 +232,8 @@ void FileSink::InitTask()
     LOG(debug) << __func__ << " n threads = " << fNThreads;
     fInProcMQLength = std::stoi(get(opt::InProcMQLength));
     fMultipart = checkFlag(opt::Multipart);
+    fWriteSleepInMilliSec = std::stoi(get(opt::WriteSleepInMilliSec));
+    LOG(info) << __func__ << " fWriteSleepInMilliSec = " << fWriteSleepInMilliSec;
 
     fFile = std::make_unique<FileUtil>();
     fFile->Init(fConfig->GetVarMap());
@@ -313,7 +318,7 @@ void FileSink::PostRun()
     fFileSinkTrailer.runNumber        = fFileSinkHeader.runNumber;
     fFileSinkTrailer.startUnixtime    = fFileSinkHeader.startUnixtime;
     fFileSinkTrailer.stopUnixtime     = time(0);
-    strcpy(fFileSinkTrailer.comments, "FileSinkTrailer.h test");
+    strcpy(fFileSinkTrailer.comments, run_comment.c_str());
     LOG(debug) << "FileSink::Trailer.magic            : " << fFileSinkTrailer.magic;
     LOG(debug) << "FileSink::Trailer.size             : " << fFileSinkTrailer.size;
     LOG(debug) << "FileSink::Trailer.fairMQDeviceType : " << fFileSinkTrailer.fairMQDeviceType;
@@ -376,8 +381,28 @@ void FileSink::PreRun()
 
     if (fConfig->Count(opt::RunNumber.data())) {
         fRunNumber = std::stoll(fConfig->GetProperty<std::string>(opt::RunNumber.data()));
-        LOG(debug) << " RUN number = " << fRunNumber;
+        LOG(debug) << " Run number: " << fRunNumber;
     }
+    if (fConfig->Count("registry-uri")) {
+        std::string registryUri = fConfig->GetProperty<std::string>("registry-uri");
+        LOG(debug) << "registryUri: " << registryUri;
+        if (!registryUri.empty()) {
+            fClient = std::make_shared<sw::redis::Redis>(registryUri);
+            std::string key;
+            fClient->keys("run_info:run_comment", &key);
+            if (key.length()>0) {
+                auto run_comment_ptr = fClient->get("run_info:run_comment");
+                run_comment = *run_comment_ptr;
+	        LOG(debug) << "run comment: " << run_comment;
+            }else{
+                LOG(debug) << "There is no key run_info:run_comment";
+            }
+        }
+    }
+    if (run_comment.length() > 255) {
+        run_comment.resize(255); // The max bytes of the comment are 256 bytes including a null charactor of 1 bytes.
+    }
+    
     fFile->SetRunNumber(fRunNumber);
     fFile->ClearBranch();
     fFile->Open();
@@ -400,7 +425,6 @@ void FileSink::PreRun()
         if (!fWorker->fHandleInputMultipart) {
             LOG(debug) << " set multipart message handler for input data";
             fWorker->fHandleInputMultipart = [this](auto &msgParts, auto index) {
-                // LOG(debug) << fClassName << ": handle input multipart" << __LINE__ << " worker input index = " << index;
                 return CompressMultipartData(msgParts, index);
             };
         }
@@ -428,7 +452,7 @@ void FileSink::PreRun()
     fFileSinkHeader.runNumber        = fRunNumber;
     fFileSinkHeader.startUnixtime    = time(0);
     fFileSinkHeader.stopUnixtime     = 0;
-    strcpy(fFileSinkHeader.comments, "FileSinkHeader.h test");
+    strcpy(fFileSinkHeader.comments, run_comment.c_str());
     LOG(debug) << "FileSink::Header.magic            : " << fFileSinkHeader.magic;
     //LOG(debug) << "FileSink::Header.size             : " << fFileSinkHeader.size;
     LOG(debug) << "FileSink::Header.hLength          : " << fFileSinkHeader.hLength;
@@ -453,7 +477,11 @@ bool FileSink::WriteData(FairMQMessagePtr &msg, int index)
     fFile->Write(reinterpret_cast<char *>(msg->GetData()), msg->GetSize());
     ++fNWrite;
     // LOG(info) << __LINE__ << ":" << __func__ << " : done : n-received = " << fNReceived << ", n-write = " << fNWrite;
-
+    if (fWriteSleepInMilliSec > 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(fWriteSleepInMilliSec));
+      LOG(info) << __LINE__ << ":" << __func__ << " : fWriteSleepInMilliSec = " << fWriteSleepInMilliSec << " msec";
+    }
+    
     if ((fMaxIteration > 0) && (fNWrite == fMaxIteration)) {
         LOG(info) << " number of WriteData() reached the max iteration. n-write = " << fNWrite
                   << " max iteration = " << fMaxIteration << ". state transition : stop";
@@ -499,10 +527,18 @@ bool FileSink::WriteMultipartData(FairMQParts &msgParts, int index)
         }
         fFile->Write(v.data(), v.size());
         ++fNWrite;
+        if (fWriteSleepInMilliSec > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(fWriteSleepInMilliSec));
+            LOG(info) << __LINE__ << ":" << __func__ << " : fWriteSleepInMilliSec = " << fWriteSleepInMilliSec << " msec";
+        }
     } else {
         for (auto &msg : msgParts) {
             fFile->Write(reinterpret_cast<char *>(msg->GetData()), msg->GetSize());
             ++fNWrite;
+            if (fWriteSleepInMilliSec > 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(fWriteSleepInMilliSec));
+                LOG(info) << __LINE__ << ":" << __func__ << " : fWriteSleepInMilliSec = " << fWriteSleepInMilliSec << " msec";
+            }
         }
     }
 
