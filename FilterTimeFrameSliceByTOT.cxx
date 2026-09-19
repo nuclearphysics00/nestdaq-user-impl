@@ -109,7 +109,10 @@ bool FilterTimeFrameSliceByTOT::ProcessSlice(TTF& tf)
                 
                 } else if (header->femType == SubTimeFrame::TDC64H_V3) {
                     TDC64H_V3::tdc64 tdc{};
-                    TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    const auto type = static_cast<unsigned int>(TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc));
+                    if (type != TDC64H_V3::T_TDC_L && type != TDC64H_V3::T_TDC_T) {
+                        continue;
+                    }
                     if (tdc.ch < 0 || tdc.tot < 0) {
                         continue;
                     }
@@ -138,7 +141,10 @@ bool FilterTimeFrameSliceByTOT::ProcessSlice(TTF& tf)
                     #endif
                 } else if (header->femType == SubTimeFrame::TDC64L_V3) {
                     TDC64L_V3::tdc64 tdc{};
-                    TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    const auto type = static_cast<unsigned int>(TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc));
+                    if (type != TDC64L_V3::T_TDC_L && type != TDC64L_V3::T_TDC_T) {
+                        continue;
+                    }
                     if (tdc.ch < 0 || tdc.tot < 0) {
                         continue;
                     }

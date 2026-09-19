@@ -74,8 +74,11 @@ bool FilterTimeFrameSliceByTracking::ProcessSlice(TTF& tf)
                     TDC64H_V3::tdc64 tdc;
                     TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
                 } else if (header->femType == SubTimeFrame::TDC64L_V3) {
-                    TDC64L_V3::tdc64 tdc;
-                    TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    TDC64L_V3::tdc64 tdc{};
+                    const auto type = static_cast<unsigned int>(TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc));
+                    if (type != TDC64L_V3::T_TDC_L && type != TDC64L_V3::T_TDC_T) {
+                        continue;
+                    }
                     // Multiplicity preprocessing step 1 (search for wire IDs)
                     if (findWirenumber(wireMapArray, header->femId, tdc.ch, &foundID, &foundGeo, Geofield)) {
                         GeoIDs[Geofield].emplace_back(foundID, tdc.tot);  // Store wireID and charge
