@@ -64,6 +64,9 @@ void FilterTimeFrameSliceByTOT::InitTask()
 
 bool FilterTimeFrameSliceByTOT::ProcessSlice(TTF& tf)
 {
+    if (!ValidateSliceFrames(tf)) {
+        return false;
+    }
 
     #if DEBUG
     std::cout << "[DEBUG] ProcessSlice called. TotalCalls: " << totalCalls << std::endl;
@@ -84,83 +87,84 @@ bool FilterTimeFrameSliceByTOT::ProcessSlice(TTF& tf)
 
     totalCalls++; // Increment total calls per TimeFrame
 
-    for (auto& SubTimeFrame : tf) {
-        auto header = SubTimeFrame->GetHeader();
-        auto& hbf = SubTimeFrame->at(0);  
+    for (auto* subTimeFrame : tf) {
+        auto* header = subTimeFrame->GetHeader();
 
-        uint64_t nData = hbf->GetNumData();
+        for (auto* hbf : *subTimeFrame) {
+            uint64_t nData = hbf->GetNumData();
 
-        #if DEBUG
-        std::cout << "[DEBUG] SubTimeFrame Header FEM Type: " << header->femType 
-                  << ", NumData: " << nData << std::endl;
-        #endif
+            #if DEBUG
+            std::cout << "[DEBUG] SubTimeFrame Header FEM Type: " << header->femType
+                      << ", NumData: " << nData << std::endl;
+            #endif
 
-        for (int i = 0; i < nData; ++i) {
-            if (header->femType == SubTimeFrame::TDC64H) {
-                TDC64H::tdc64 tdc;
-                TDC64H::Unpack(hbf->UncheckedAt(i), &tdc);
+            for (uint64_t i = 0; i < nData; ++i) {
+                if (header->femType == SubTimeFrame::TDC64H) {
+                    TDC64H::tdc64 tdc;
+                    TDC64H::Unpack(hbf->UncheckedAt(i), &tdc);
                 
-            } else if (header->femType == SubTimeFrame::TDC64L) {
-                TDC64L::tdc64 tdc;
-                TDC64L::Unpack(hbf->UncheckedAt(i), &tdc);
+                } else if (header->femType == SubTimeFrame::TDC64L) {
+                    TDC64L::tdc64 tdc;
+                    TDC64L::Unpack(hbf->UncheckedAt(i), &tdc);
                 
-            } else if (header->femType == SubTimeFrame::TDC64H_V3) {
-                TDC64H_V3::tdc64 tdc{};
-                TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
-                if (tdc.ch < 0 || tdc.tot < 0) {
-                    continue;
-                }
-                int charge = tdc.tot;
-                // Plastic_str_1
-                if ((tdc.ch == 10) || (tdc.ch == 11)){
-                //Pla _att_1
-                //if ((tdc.ch == 42) || (tdc.ch == 43)){
-                int planeId = DeterminePlane(header->femId, tdc.ch);
+                } else if (header->femType == SubTimeFrame::TDC64H_V3) {
+                    TDC64H_V3::tdc64 tdc{};
+                    TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    if (tdc.ch < 0 || tdc.tot < 0) {
+                        continue;
+                    }
+                    int charge = tdc.tot;
+                    // Plastic_str_1
+                    if ((tdc.ch == 10) || (tdc.ch == 11)){
+                    //Pla _att_1
+                    //if ((tdc.ch == 42) || (tdc.ch == 43)){
+                    int planeId = DeterminePlane(header->femId, tdc.ch);
                 
 
-                #if DEBUG
-                std::cout << "[DEBUG] Processed TDC64H_V3: Charge=" << charge 
-                          << ", PlaneID=" << planeId << std::endl;
-                #endif
+                    #if DEBUG
+                    std::cout << "[DEBUG] Processed TDC64H_V3: Charge=" << charge
+                              << ", PlaneID=" << planeId << std::endl;
+                    #endif
                 
-                #if Plastic_signal
+                    #if Plastic_signal
+                        if (planeId != -1) {
+                            auto& [sum, count] = chargeSums[planeId];
+                            sum += charge;
+                            count++;
+                            std::cout << "[DEBUG] Updated chargeSums for PlaneID_High=" << planeId
+                                    << ": Sum=" << sum << ", Count=" << count << std::endl;
+                        }
+                    }
+                    #endif
+                } else if (header->femType == SubTimeFrame::TDC64L_V3) {
+                    TDC64L_V3::tdc64 tdc{};
+                    TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    if (tdc.ch < 0 || tdc.tot < 0) {
+                        continue;
+                    }
+                    int charge = tdc.tot;
+                    int planeId = DeterminePlane(header->femId, tdc.ch);
+                    int ch = tdc.ch;
+                    int timing = tdc.tdc;
+                
+
+                    #if DEBUG
+                    std::cout << "[DEBUG] Processed TDC64L_V3: Charge=" << charge
+                              << ", PlaneID=" << planeId << std::endl;
+                    #endif
+
                     if (planeId != -1) {
                         auto& [sum, count] = chargeSums[planeId];
                         sum += charge;
-                        count++;  
-                        std::cout << "[DEBUG] Updated chargeSums for PlaneID_High=" << planeId 
-                                << ": Sum=" << sum << ", Count=" << count << std::endl;
+                        count++;
+
+                        #if DEBUG
+                        std::cout << "[DEBUG] Updated chargeSums for PlaneID_Low=" << planeId
+                                  << ": Sum=" << sum << ", Count=" << count << std::endl;
+                        #endif
+
+                        eventDetails.emplace_back(eventID,header->femId,ch,timing,charge);
                     }
-                }
-                #endif 
-            } else if (header->femType == SubTimeFrame::TDC64L_V3) {
-                TDC64L_V3::tdc64 tdc{};
-                TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
-                if (tdc.ch < 0 || tdc.tot < 0) {
-                    continue;
-                }
-                int charge = tdc.tot;
-                int planeId = DeterminePlane(header->femId, tdc.ch);
-                int ch = tdc.ch;
-                int timing = tdc.tdc;
-                
-
-                #if DEBUG
-                std::cout << "[DEBUG] Processed TDC64L_V3: Charge=" << charge 
-                          << ", PlaneID=" << planeId << std::endl;
-                #endif
-
-                if (planeId != -1) {
-                    auto& [sum, count] = chargeSums[planeId];
-                    sum += charge;
-                    count++;
-
-                    #if DEBUG
-                    std::cout << "[DEBUG] Updated chargeSums for PlaneID_Low=" << planeId 
-                              << ": Sum=" << sum << ", Count=" << count << std::endl;
-                    #endif
-
-                    eventDetails.emplace_back(eventID,header->femId,ch,timing,charge);
                 }
             }
         }

@@ -34,6 +34,10 @@ FilterTimeFrameSliceByTOF::FilterTimeFrameSliceByTOF()
 
 bool FilterTimeFrameSliceByTOF::ProcessSlice(TTF& tf)
 {
+    if (!ValidateSliceFrames(tf)) {
+        return false;
+    }
+
     auto start_time = std::chrono::high_resolution_clock::now();
     size_t total_size = 0;
 
@@ -41,31 +45,33 @@ bool FilterTimeFrameSliceByTOF::ProcessSlice(TTF& tf)
 
     auto tfHeader = tf.GetHeader();
 
-    for (auto& SubTimeFrame : tf) {
+    for (auto* subTimeFrame : tf) {
         std::cout << "SubTimeFrame" << std::endl;
-        auto header = SubTimeFrame->GetHeader();
-        auto& hbf = SubTimeFrame->at(0);                
-        uint64_t nData = hbf->GetNumData();
-        total_size += nData * sizeof(hbf->UncheckedAt(0));
+        auto* header = subTimeFrame->GetHeader();
 
-        for (int i = 0; i < nData; ++i) {
-            if (header->femType == SubTimeFrame::TDC64H) {
-                TDC64H::tdc64 tdc;
-                TDC64H::Unpack(hbf->UncheckedAt(i), &tdc);
+        for (auto* hbf : *subTimeFrame) {
+            uint64_t nData = hbf->GetNumData();
+            total_size += nData * sizeof(uint64_t);
 
-            } else if (header->femType == SubTimeFrame::TDC64L) {
-                TDC64L::tdc64 tdc;
-                TDC64L::Unpack(hbf->UncheckedAt(i), &tdc);
+            for (uint64_t i = 0; i < nData; ++i) {
+                if (header->femType == SubTimeFrame::TDC64H) {
+                    TDC64H::tdc64 tdc;
+                    TDC64H::Unpack(hbf->UncheckedAt(i), &tdc);
 
-            } else if (header->femType == SubTimeFrame::TDC64H_V3) {
-                TDC64H_V3::tdc64 tdc;
-                TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
-                AddTOFHit(header->femId, tdc.ch, tdc.tdc);
+                } else if (header->femType == SubTimeFrame::TDC64L) {
+                    TDC64L::tdc64 tdc;
+                    TDC64L::Unpack(hbf->UncheckedAt(i), &tdc);
 
-            } else if (header->femType == SubTimeFrame::TDC64L_V3) {
-                TDC64L_V3::tdc64 tdc;
-                TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
-                AddTOFHit(header->femId, tdc.ch, tdc.tdc);
+                } else if (header->femType == SubTimeFrame::TDC64H_V3) {
+                    TDC64H_V3::tdc64 tdc;
+                    TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    AddTOFHit(header->femId, tdc.ch, tdc.tdc);
+
+                } else if (header->femType == SubTimeFrame::TDC64L_V3) {
+                    TDC64L_V3::tdc64 tdc;
+                    TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    AddTOFHit(header->femId, tdc.ch, tdc.tdc);
+                }
             }
         }
     }

@@ -58,6 +58,7 @@ public:
 protected:
    virtual bool ParseMessages(FairMQParts& inParts);
    virtual bool ProcessSlice(TTF& ) { return true; }
+   bool ValidateSliceFrames(const TTF& tf) const;
    
    std::string fInputChannelName;
    std::string fOutputChannelName;

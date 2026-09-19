@@ -21,6 +21,35 @@ FilterTimeFrameSliceABC::FilterTimeFrameSliceABC()
 {
 }
 
+bool FilterTimeFrameSliceABC::ValidateSliceFrames(const TTF& tf) const
+{
+    if (tf.empty()) {
+        LOG(error) << fName << ": TimeFrame contains no SubTimeFrames";
+        return false;
+    }
+
+    std::size_t stfIndex = 0;
+    for (const auto* subTimeFrame : tf) {
+        if (subTimeFrame == nullptr || subTimeFrame->empty()) {
+            LOG(error) << fName << ": empty SubTimeFrame at index " << stfIndex;
+            return false;
+        }
+
+        std::size_t hbfIndex = 0;
+        for (const auto* hbf : *subTimeFrame) {
+            if (hbf == nullptr) {
+                LOG(error) << fName << ": null HeartbeatFrame at STF index "
+                           << stfIndex << ", HBF index " << hbfIndex;
+                return false;
+            }
+            ++hbfIndex;
+        }
+        ++stfIndex;
+    }
+
+    return true;
+}
+
 int FilterTimeFrameSliceABC::geoToIndex(uint64_t geo) {
     for (std::size_t index = 0; index < kFemConfigs.size(); ++index) {
         const bool fullAddressMatches = kFemConfigs[index].geo == geo;

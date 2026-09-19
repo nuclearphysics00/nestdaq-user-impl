@@ -43,6 +43,10 @@ FilterTimeFrameSliceByTracking::FilterTimeFrameSliceByTracking()
 
 bool FilterTimeFrameSliceByTracking::ProcessSlice(TTF& tf)
 {
+    if (!ValidateSliceFrames(tf)) {
+        return false;
+    }
+
     auto start_time = std::chrono::high_resolution_clock::now();
     size_t total_size = 0;
 
@@ -51,34 +55,36 @@ bool FilterTimeFrameSliceByTracking::ProcessSlice(TTF& tf)
 
     auto tfHeader = tf.GetHeader();
     std::cout << "TimeFrame" << std::endl;
-    for (auto& SubTimeFrame : tf) {
+    for (auto* subTimeFrame : tf) {
         std::cout << "SubTimeFrame" << std::endl;
-        auto header = SubTimeFrame->GetHeader();
-        auto& hbf = SubTimeFrame->at(0);
-        uint64_t nData = hbf->GetNumData();
-        total_size += nData * sizeof(hbf->UncheckedAt(0));
+        auto* header = subTimeFrame->GetHeader();
 
-        for (int i = 0; i < nData; ++i) {
-            if (header->femType == SubTimeFrame::TDC64H) {
-                TDC64H::tdc64 tdc;
-                TDC64H::Unpack(hbf->UncheckedAt(i), &tdc);
-            } else if (header->femType == SubTimeFrame::TDC64L) {
-                TDC64L::tdc64 tdc;
-                TDC64L::Unpack(hbf->UncheckedAt(i), &tdc);
-            } else if (header->femType == SubTimeFrame::TDC64H_V3) {
-                TDC64H_V3::tdc64 tdc;
-                TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
-            } else if (header->femType == SubTimeFrame::TDC64L_V3) {
-                TDC64L_V3::tdc64 tdc;
-                TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
-                // Multiplicity preprocessing step 1 (search for wire IDs)
-                if (findWirenumber(wireMapArray, header->femId, tdc.ch, &foundID, &foundGeo, Geofield)) {
-                    GeoIDs[Geofield].emplace_back(foundID, tdc.tot);  // Store wireID and charge
+        for (auto* hbf : *subTimeFrame) {
+            uint64_t nData = hbf->GetNumData();
+            total_size += nData * sizeof(uint64_t);
+
+            for (uint64_t i = 0; i < nData; ++i) {
+                if (header->femType == SubTimeFrame::TDC64H) {
+                    TDC64H::tdc64 tdc;
+                    TDC64H::Unpack(hbf->UncheckedAt(i), &tdc);
+                } else if (header->femType == SubTimeFrame::TDC64L) {
+                    TDC64L::tdc64 tdc;
+                    TDC64L::Unpack(hbf->UncheckedAt(i), &tdc);
+                } else if (header->femType == SubTimeFrame::TDC64H_V3) {
+                    TDC64H_V3::tdc64 tdc;
+                    TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                } else if (header->femType == SubTimeFrame::TDC64L_V3) {
+                    TDC64L_V3::tdc64 tdc;
+                    TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                    // Multiplicity preprocessing step 1 (search for wire IDs)
+                    if (findWirenumber(wireMapArray, header->femId, tdc.ch, &foundID, &foundGeo, Geofield)) {
+                        GeoIDs[Geofield].emplace_back(foundID, tdc.tot);  // Store wireID and charge
 #if DEBUG
-                    std::cout << "GeoID: " << Geofield << " WireID: " << foundID << " Charge: " << tdc.tot << std::endl;
+                        std::cout << "GeoID: " << Geofield << " WireID: " << foundID << " Charge: " << tdc.tot << std::endl;
 #endif
+                    }
                 }
-            }            
+            }
         }
     }
     // End of TimeFrame
