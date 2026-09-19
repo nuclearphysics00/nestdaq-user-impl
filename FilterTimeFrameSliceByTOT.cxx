@@ -105,8 +105,11 @@ bool FilterTimeFrameSliceByTOT::ProcessSlice(TTF& tf)
                 TDC64L::Unpack(hbf->UncheckedAt(i), &tdc);
                 
             } else if (header->femType == SubTimeFrame::TDC64H_V3) {
-                TDC64H_V3::tdc64 tdc;
+                TDC64H_V3::tdc64 tdc{};
                 TDC64H_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                if (tdc.ch < 0 || tdc.tot < 0) {
+                    continue;
+                }
                 int charge = tdc.tot;
                 // Plastic_str_1
                 if ((tdc.ch == 10) || (tdc.ch == 11)){
@@ -131,8 +134,11 @@ bool FilterTimeFrameSliceByTOT::ProcessSlice(TTF& tf)
                 }
                 #endif 
             } else if (header->femType == SubTimeFrame::TDC64L_V3) {
-                TDC64L_V3::tdc64 tdc;
+                TDC64L_V3::tdc64 tdc{};
                 TDC64L_V3::Unpack(hbf->UncheckedAt(i), &tdc);
+                if (tdc.ch < 0 || tdc.tot < 0) {
+                    continue;
+                }
                 int charge = tdc.tot;
                 int planeId = DeterminePlane(header->femId, tdc.ch);
                 int ch = tdc.ch;
