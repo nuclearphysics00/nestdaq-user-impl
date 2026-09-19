@@ -2,7 +2,7 @@
  * @file FilterTimeFrameSliceByTOF_GR.cxx
  * @brief Slice GR TimeFrame by Time of Flight for NestDAQ
  * @date Created : 2024-05-04 12:27:57 JST
- *       Last Modified : 2024-07-21 11:06:28 JST
+ *       Last Modified : 2026-09-19 16:10:59 JST
  *
  * @author Fumiya Furukawa <fumiya@rcnp.osaka-u.ac.jp>
  * @comment Modify FilterTimeFrameSliceBySomething.cxx for MultiHit

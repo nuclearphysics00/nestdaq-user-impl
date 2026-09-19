@@ -2,7 +2,7 @@
  * @file FilterTimeFrameSliceByTOT_GR.cxx
  * @brief Slice GR TimeFrame by Time Over Threshold (TOT) for NestDAQ
  * @date Created : 2024-05-04 12:27:57 JST
- *       Last Modified : 2024-07-15 00:47:34 JST
+ *       Last Modified : 2026-09-19 16:10:59 JST
  *
  * @comment Modify FilterTimeFrameSliceBySomething.cxx for MultiHit
  *

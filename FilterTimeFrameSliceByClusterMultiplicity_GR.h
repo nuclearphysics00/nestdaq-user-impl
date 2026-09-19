@@ -2,7 +2,7 @@
  * @file FilterTimeFrameSliceByClusterMultiplicity_GR.h
  * @brief Header file for FilterTimeFrameSliceByClusterMultiplicity_GR class
  * @date Created : 2024-05-04 12:27:57 JST
- *       Last Modified : 2024-07-20 01:26:30 JST
+ *       Last Modified : 2026-09-19 16:10:59 JST
  *
  * author Fumiya Furukawa <fumiya@rcnp.osaka-u.ac.jp>
  * @comment GR-specific cluster multiplicity filter

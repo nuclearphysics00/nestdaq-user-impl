@@ -2,7 +2,7 @@
  * @file FilterTimeFrameSliceByTOT_GR.h
  * @brief Class for filtering time frame slice by Time Over Threshold (TOT)
  * @date Created : 2024-05-04 12:27:57 JST
- *       Last Modified : 2024-07-23 11:09:34 JST
+ *       Last Modified : 2026-09-19 16:10:59 JST
  *
  * author Fumiya Furukawa <fumiya@rcnp.osaka-u.ac.jp>
  * @comment Add Reduction-rate, Throughput per unit time
