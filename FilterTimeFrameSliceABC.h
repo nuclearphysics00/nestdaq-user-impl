@@ -1,8 +1,8 @@
 /*
- * @file FilterTimeFrameSliceABC.icxx
+ * @file FilterTimeFrameSliceABC.h
  * @brief Slice Timeframe by Logic timing for NestDAQ
  * @date Created : 2024-05-04 12:31:55 JST
- *       Last Modified : 2024-07-21 02:23:44 JST (furukawa)
+ *       Last Modified : 2026-09-19 17:15:12 JST
  *
  * @author Shinsuke OTA <ota@rcnp.osaka-u.ac.jp>
  * @comment Added geoToIndex function for VDC channel map loading
@@ -49,7 +49,7 @@ public:
    struct OptionKey {
       static constexpr std::string_view InputChannelName {"in-chan-name"};
       static constexpr std::string_view OutputChannelName {"out-chan-name"};
-      static constexpr std::string_view DQMChannelName {"out-chan-name"};
+      static constexpr std::string_view DQMChannelName {"dqm-chan-name"};
       static constexpr std::string_view PollTimeout        {"poll-timeout"};
       static constexpr std::string_view SplitMethod        {"split"};
       static constexpr std::string_view EvaluationMode     {"evaluation-mode"};
