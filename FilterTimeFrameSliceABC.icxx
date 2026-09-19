@@ -23,7 +23,10 @@ FilterTimeFrameSliceABC::FilterTimeFrameSliceABC()
 
 int FilterTimeFrameSliceABC::geoToIndex(uint64_t geo) {
     for (std::size_t index = 0; index < kFemConfigs.size(); ++index) {
-        if (kFemConfigs[index].geo == geo) {
+        const bool fullAddressMatches = kFemConfigs[index].geo == geo;
+        const bool compactAddressMatches =
+            geo <= 0x0fff && (kFemConfigs[index].geo & 0x0fff) == geo;
+        if (fullAddressMatches || compactAddressMatches) {
             return static_cast<int>(index);
         }
     }

@@ -92,7 +92,7 @@ protected:
       {0xc0a802a5, 3},
       {0xc0a802a6, 3},
       {0xc0a802a7, 4},
-      {0xc0a802aa, 4},
+      {0xc0a802a8, 4},
    }};
 
    using WireMapArray =
