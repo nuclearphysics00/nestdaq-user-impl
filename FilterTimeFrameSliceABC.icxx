@@ -2,6 +2,7 @@
 #include "utility/MessageUtil.h"
 #include "UnpackTdc.h"
 #include <chrono>
+#include <stdexcept>
 
 #define Max_Wiremap 850
 #define DEBUG 0
@@ -10,7 +11,6 @@
 
 // Dump raw data
 #define DEBUG2 0
-#define EVALUATION_MODE 1
 
 
 using nestdaq::FilterTimeFrameSliceABC;
@@ -64,11 +64,10 @@ int FilterTimeFrameSliceABC::geoToIndex(uint64_t geo) {
 
 void FilterTimeFrameSliceABC::InitTask()
 {
-    #if EVALUATION_MODE
-        EvaluationMode = true; // EVALUATION_MODE 
-    #else
-        EvaluationMode = false; //Disable
-    #endif
+    // Preserve the historical behavior when a derived filter does not expose
+    // the option. GR filters register evaluation-mode and can override this
+    // fallback through the parameter_config plugin.
+    EvaluationMode = true;
 
     using opt = OptionKey;
 
@@ -80,14 +79,20 @@ void FilterTimeFrameSliceABC::InitTask()
     ss >> fId;
 
     if (fConfig->Count(OptionKey::EvaluationMode.data())) {
-            std::string eval_str = fConfig->GetValue<std::string>(OptionKey::EvaluationMode.data());
-            if (eval_str == "1" || eval_str == "true" || eval_str == "True") {
-                EvaluationMode = true;
-            } else {
-                EvaluationMode = false;
-            }
+        const auto eval_str =
+            fConfig->GetValue<std::string>(OptionKey::EvaluationMode.data());
+        if (eval_str == "1" || eval_str == "true" || eval_str == "True") {
+            EvaluationMode = true;
+        } else if (eval_str == "0" || eval_str == "false" || eval_str == "False") {
+            EvaluationMode = false;
+        } else {
+            throw std::invalid_argument(
+                "evaluation-mode must be true/false or 1/0: " + eval_str);
         }
+    }
 
+    LOG(info) << "[" << fName << "] evaluation-mode="
+              << (EvaluationMode ? "true" : "false");
 
     fNumDestination = GetNumSubChannels(fOutputChannelName);
     fPollTimeoutMS  = std::stoi(fConfig->GetProperty<std::string>(opt::PollTimeout.data()));
