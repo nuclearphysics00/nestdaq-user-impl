@@ -381,6 +381,9 @@ void addCustomOptions(bpo::options_description& options)
         (opt::SplitMethod.data(),
          bpo::value<std::string>()->default_value("1"),
          "STF split method")
+        (opt::EvaluationMode.data(),
+         bpo::value<std::string>()->default_value("true"),
+         "Evaluation mode: forward rejected frames with the rejection flag (true/false)")
         ("ssr-threshold", bpo::value<double>()->default_value(1.0), "SSR threshold for tracking");  // Add this line
 }
 

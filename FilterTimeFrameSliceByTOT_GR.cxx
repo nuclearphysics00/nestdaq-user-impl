@@ -514,6 +514,9 @@ void addCustomOptions(bpo::options_description& options)
         (opt::SplitMethod.data(),
          bpo::value<std::string>()->default_value("1"),
          "STF split method")
+        (opt::EvaluationMode.data(),
+         bpo::value<std::string>()->default_value("true"),
+         "Evaluation mode: forward rejected frames with the rejection flag (true/false)")
         (kCutThresholdOptions[0].data(),
          bpo::value<std::string>()->default_value(kDefaultCutThreshold.data()),
          "Threshold for the sum of mean TOT values in the VDC X1-X2 correlation")

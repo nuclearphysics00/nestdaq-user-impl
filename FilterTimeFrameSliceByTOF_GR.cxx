@@ -158,7 +158,10 @@ void addCustomOptions(bpo::options_description& options)
          "Timeout of polling (in msec)")
         (opt::SplitMethod.data(),
          bpo::value<std::string>()->default_value("1"),
-         "STF split method");
+         "STF split method")
+        (opt::EvaluationMode.data(),
+         bpo::value<std::string>()->default_value("true"),
+         "Evaluation mode: forward rejected frames with the rejection flag (true/false)");
 }
 
 std::unique_ptr<fair::mq::Device> getDevice(fair::mq::ProgOptions& /*config*/)
