@@ -53,6 +53,9 @@ void addCustomOptions(bpo::options_description &options)
          "Number of iterations (if zero, no limitation is set)")
         (opt::WriteSleepInMilliSec.data(), bpo::value<std::string>()->default_value("0"),
          "Write Sleep in msec")
+        //
+        (opt::DQMChannelName.data(), bpo::value<std::string>()->default_value("dqm"),
+         "Name of DQM channel")
 	;
     }
 
@@ -147,6 +150,23 @@ bool FileSink::HandleData(FairMQMessagePtr &msg, int index)
     // LOG(info) << __LINE__ << ":" << __func__ << " index = " << index << " n-received = " << fNReceived << ", n-write =
     // " << fNWrite;
     ++fNReceived;
+
+    // send data to data quality monitor 
+#if 1
+    FairMQParts dqmParts;
+	if (int nSubChan = fChannels.count(fDQMChannelName)) {
+		FairMQMessagePtr msgCopy(fTransportFactory->CreateMessage());
+		msgCopy->Copy(*msg);
+		dqmParts.AddPart(std::move(msgCopy));
+        if (Send(dqmParts,fDQMChannelName) < 0) {
+            if (NewStatePending()) {
+                LOG(info) << "Device is not RUNNING";
+            } else {
+                LOG(error) << "Failed to enqueue time frame slice (DQM) " << std::endl;
+            }
+        }
+    }   
+#endif
     return WriteData(msg, index);
 }
 
@@ -181,6 +201,20 @@ bool FileSink::HandleMultipartData(FairMQParts &msgParts, int index)
     // LOG(info) << __LINE__ << ":" << __func__ << " index = " << index << " n-received = " << fNReceived << ", n-write =
     // " << fNWrite;
     ++fNReceived;
+    auto nSubChan = GetNumSubChannels(fDQMChannelName);    
+
+	for (auto iSubChan = 0; iSubChan < nSubChan; ++iSubChan) {
+        fair::mq::Parts partsCopy = MessageUtil::Copy(*this, msgParts);
+        if (Send(partsCopy,fDQMChannelName,iSubChan) < 0) {
+            if (NewStatePending()) {
+                LOG(info) << "Device is not RUNNING";
+            } else {
+                LOG(error) << "Failed to enqueue time frame slice (DQM) " << std::endl;
+            }
+        }
+    }   
+
+
     return WriteMultipartData(msgParts, index);
 }
 
@@ -209,6 +243,8 @@ void FileSink::Init() {}
 //______________________________________________________________________________
 void FileSink::InitTask()
 {
+    fStopRequested = false;
+
     auto get = [this](auto name) -> std::string {
         if (fConfig->Count(name.data()) < 1) {
             LOG(debug) << " variable: " << name << " not found";
@@ -224,6 +260,7 @@ void FileSink::InitTask()
     };
 
     fInputDataChannelName = get(opt::InputDataChannelName);
+    fDQMChannelName = get(opt::DQMChannelName);
 
     fNThreads = std::stoi(get(opt::NThreads));
     if (fNThreads < 1) {
@@ -236,7 +273,15 @@ void FileSink::InitTask()
     LOG(info) << __func__ << " fWriteSleepInMilliSec = " << fWriteSleepInMilliSec;
 
     fFile = std::make_unique<FileUtil>();
-    fFile->Init(fConfig->GetVarMap());
+    try {
+        fFile->Init(fConfig->GetVarMap());
+    } catch (...) {
+        LOG(error) << __func__ << ", Invalid File property...";
+        //ChangeStateOrThrow(fair::mq::Transition::Stop);
+        //ChangeState(fair::mq::Transition::Stop);
+        fStopRequested = true;
+	    return;
+    }
     fFile->Print();
     fFileExtension = fFile->GetExtension();
     auto compressFormat = Compressor::ExtToFormat(fFileExtension);
@@ -277,6 +322,11 @@ void FileSink::InitTask()
 //______________________________________________________________________________
 void FileSink::PostRun()
 {
+    if (fStopRequested) {
+        LOG(error) << __LINE__ << ":" << __func__ << ", Stop requested. skip PostRun.";
+        return;
+    }
+
     LOG(info) << __LINE__ << ":" << __func__;
     if (fWorker) {
         fWorker->Join();
@@ -372,6 +422,11 @@ void FileSink::PostRun()
 //______________________________________________________________________________
 void FileSink::PreRun()
 {
+    if (fStopRequested) {
+        LOG(error) << __LINE__ << ":" << __func__ << ", Stop requested. skip PreRun.";
+        return;
+    }
+
     LOG(info) << __LINE__ << ":" << __func__;
     fNReceived = 0;
     fNWrite = 0;
@@ -380,7 +435,17 @@ void FileSink::PreRun()
     fCompressedSize = 0;
 
     if (fConfig->Count(opt::RunNumber.data())) {
-        fRunNumber = std::stoll(fConfig->GetProperty<std::string>(opt::RunNumber.data()));
+        try {
+            fRunNumber = std::stoll(fConfig->GetProperty<std::string>(opt::RunNumber.data()));
+        } catch (const std::exception &e) {
+            LOG(error) << "Invalid Run number: " << e.what();
+            //ChangeState(fair::mq::Transition::Stop);
+            fStopRequested = true;
+	} catch (...) {
+            LOG(error) << "Invalid Run number: " << fConfig->GetProperty<std::string>(opt::RunNumber.data());
+            //ChangeState(fair::mq::Transition::Stop);
+            fStopRequested = true;
+	}
         LOG(debug) << " Run number: " << fRunNumber;
     }
     if (fConfig->Count("registry-uri")) {
