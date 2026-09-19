@@ -133,23 +133,14 @@ bool FilterTimeFrameSliceByTracking::ProcessSlice(TTF& tf)
     return false;
 }
 
-int FilterTimeFrameSliceByTracking::findWirenumber(const std::array<std::array<Wire_map, maxCh + 1>, 8>& wireMapArray, uint64_t geo, int ch, int *foundid, int *foundGeo, int &Geofield) {
+int FilterTimeFrameSliceByTracking::findWirenumber(const WireMapArray& wireMapArray, uint64_t geo, int ch, int *foundid, int *foundGeo, int &Geofield) {
     int geoIndex = geoToIndex(geo);
-    if (geoIndex != -1 && ch < wireMapArray[geoIndex].size()) {
+    if (geoIndex >= 0 && ch >= 0 && ch <= maxCh) {
         const Wire_map& wire = wireMapArray[geoIndex][ch];
         if (wire.catid != -1) {
             *foundid = wire.id;
             *foundGeo = wire.geo;
-
-            if ((geo == 0xc0a802a1) || (geo == 0xc0a802a2)) {
-                Geofield = 1;
-            } else if ((geo == 0xc0a802a3) || (geo == 0xc0a802a4)) {
-                Geofield = 2;
-            } else if ((geo == 0xc0a802a5) || (geo == 0xc0a802a6)) {
-                Geofield = 3;
-            } else if ((geo == 0xc0a802a7) || (geo == 0xc0a802a8)) {
-                Geofield = 4;
-            }
+            Geofield = kFemConfigs[geoIndex].plane;
 
             return 1;
         }

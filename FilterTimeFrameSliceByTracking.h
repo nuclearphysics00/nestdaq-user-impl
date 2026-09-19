@@ -48,7 +48,7 @@ private:
        std::vector<int> clusterSizes;  // Number of cluster elements
    };
 
-   int findWirenumber(const std::array<std::array<Wire_map, maxCh + 1>, 8>& wireMapArray, uint64_t geo, int ch, int *foundid, int *foundGeo, int &Geofield);
+   int findWirenumber(const WireMapArray& wireMapArray, uint64_t geo, int ch, int *foundid, int *foundGeo, int &Geofield);
    std::vector<std::vector<std::pair<int, int>>> clusterNumbers(const std::vector<std::pair<int, int>>& numbers);
    std::map<int, GeofieldClusterInfo> analyzeGeofieldClusters(const std::map<int, std::vector<std::pair<int, int>>>& GeoIDs);
    bool allKeysHaveAtLeastOneCluster(const std::map<int, GeofieldClusterInfo>& geofieldClusterMap);

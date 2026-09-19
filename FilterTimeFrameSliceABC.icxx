@@ -22,15 +22,10 @@ FilterTimeFrameSliceABC::FilterTimeFrameSliceABC()
 }
 
 int FilterTimeFrameSliceABC::geoToIndex(uint64_t geo) {
-    // change here ! Detector geometry
-    std::vector<uint64_t> geoValues = {
-        0xc0a802a1, 0xc0a802a2, 0xc0a802a3, 0xc0a802a4,
-        0xc0a802a5, 0xc0a802a6, 0xc0a802a7, 0xc0a802a8, 0xc0a802a9
-    };
-
-    auto it = std::find(geoValues.begin(), geoValues.end(), geo);
-    if (it != geoValues.end()) {
-        return std::distance(geoValues.begin(), it);
+    for (std::size_t index = 0; index < kFemConfigs.size(); ++index) {
+        if (kFemConfigs[index].geo == geo) {
+            return static_cast<int>(index);
+        }
     }
     return -1;
 }
@@ -90,7 +85,7 @@ void FilterTimeFrameSliceABC::InitTask()
             std::cout << "Debug for loading Vdc Channnel - geoindex: " << geoIndex << std::endl;
             std::cout << "Debug for record.geo outside of function: " << record.geo << std::endl;
         #endif
-        if (geoIndex != -1 && record.ch <= maxCh) {
+        if (geoIndex >= 0 && record.ch >= 0 && record.ch <= maxCh) {
             wireMapArray[geoIndex][record.ch] = record;
         } else {
             std::cerr << "Invalid geo or ch value: " << line << std::endl;
@@ -368,4 +363,3 @@ bool FilterTimeFrameSliceABC::ParseMessages(FairMQParts& inParts)
     }
     return true;
 }
-

@@ -18,6 +18,10 @@
 #include "HeartbeatFrameHeader.h"
 #include "FrameContainer.h"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+
 namespace nestdaq {
    class FilterTimeFrameSliceABC;
 }
@@ -69,11 +73,31 @@ protected:
    // time frame
    std::vector<TTF> fTFs; 
 
-   // Maximum number of wires on each plane 
-   static const int maxCh = 112; 
+   // Maximum channel number in the wire map.
+   static constexpr int maxCh = 112;
 
-   // Number of amaneq units = 8
-   std::array<std::array<Wire_map, maxCh + 1>, 8> wireMapArray;
+   struct FemConfig {
+      uint64_t geo;
+      int plane;
+   };
+
+   // Fixed online lookup order. Keep the FEM address and plane assignment in
+   // one table so the wire-map slot and the detector plane cannot diverge.
+   static constexpr std::size_t kNumFem = 8;
+   inline static constexpr std::array<FemConfig, kNumFem> kFemConfigs {{
+      {0xc0a802a1, 1},
+      {0xc0a802a2, 1},
+      {0xc0a802a3, 2},
+      {0xc0a802a4, 2},
+      {0xc0a802a5, 3},
+      {0xc0a802a6, 3},
+      {0xc0a802a7, 4},
+      {0xc0a802aa, 4},
+   }};
+
+   using WireMapArray =
+      std::array<std::array<Wire_map, maxCh + 1>, kNumFem>;
+   WireMapArray wireMapArray {};
 
 
    int geoToIndex(uint64_t geo);

@@ -122,13 +122,13 @@ bool FilterTimeFrameSliceByMultiplicity::ProcessSlice(TTF& tf)
     return false;
 }
 
-int FilterTimeFrameSliceByMultiplicity::findWirenumber(const std::array<std::array<Wire_map, maxCh + 1>, 8>& wireMapArray, uint64_t geo, int ch, int *foundid, int *foundGeo, int &Geofield) {
+int FilterTimeFrameSliceByMultiplicity::findWirenumber(const WireMapArray& wireMapArray, uint64_t geo, int ch, int *foundid, int *foundGeo, int &Geofield) {
     int geoIndex = geoToIndex(geo);
     #if DEBUG
         std::cout << "[findWirenumber] geoToIndex: geo=" << std::hex << geo << " index=" << geoIndex << std::dec << std::endl;
     #endif
 
-    if (geoIndex == -1) {
+    if (geoIndex < 0) {
         #if DEBUG
             std::cout << "[findWirenumber] Invalid geo value: " << std::hex << geo << std::dec << std::endl;
         #endif
@@ -137,7 +137,7 @@ int FilterTimeFrameSliceByMultiplicity::findWirenumber(const std::array<std::arr
         return 0;
     }
 
-    if (ch >= wireMapArray[geoIndex].size()) {
+    if (ch < 0 || ch > maxCh) {
         #if DEBUG
             std::cout << "[findWirenumber] Invalid channel: " << ch << " for geoIndex: " << geoIndex << std::endl;
         #endif
@@ -156,15 +156,7 @@ int FilterTimeFrameSliceByMultiplicity::findWirenumber(const std::array<std::arr
         *foundid = wire.id;
         *foundGeo = wire.geo;
 
-        if ((geo == 0xc0a802a1) || (geo == 0xc0a802a2)) {
-            Geofield = 1; // plane1
-        } else if ((geo == 0xc0a802a3) || (geo == 0xc0a802a4)) {
-            Geofield = 2; // plane2
-        } else if ((geo == 0xc0a802a5) || (geo == 0xc0a802a6)) {
-            Geofield = 3; // plane3
-        } else if ((geo == 0xc0a802a7) || (geo == 0xc0a802a8)) {
-            Geofield = 4; // plane4
-        }
+        Geofield = kFemConfigs[geoIndex].plane;
         #if DEBUG
         std::cout << "[findWirenumber] Found wire ID: " << *foundid << ", foundGeo: " << std::hex << *foundGeo << ", Geofield: " << Geofield << std::dec << std::endl;
         #endif
