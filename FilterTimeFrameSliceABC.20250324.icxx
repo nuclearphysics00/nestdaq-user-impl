@@ -45,21 +45,12 @@ void FilterTimeFrameSliceABC::InitTask()
 
     using opt = OptionKey;
 
-
     fInputChannelName  = fConfig->GetValue<std::string>(opt::InputChannelName.data());
     fOutputChannelName = fConfig->GetValue<std::string>(opt::OutputChannelName.data());
     fName = fConfig->GetProperty<std::string>("id");
     std::istringstream ss(fName.substr(fName.rfind("-") + 1));
     ss >> fId;
 
-    if (fConfig->Count(OptionKey::EvaluationMode.data())) {
-            std::string eval_str = fConfig->GetValue<std::string>(OptionKey::EvaluationMode.data());
-            if (eval_str == "1" || eval_str == "true" || eval_str == "True") {
-                EvaluationMode = true;
-            } else {
-                EvaluationMode = false;
-            }
-        }
 
 
     fNumDestination = GetNumSubChannels(fOutputChannelName);
@@ -269,7 +260,7 @@ std::cout << "Duration: " << duration << " μs, DataSize: " << dataSizeMB
 std::ofstream outFile("FilterPerformance.txt", std::ios::app); // Append mode
 if (outFile.is_open()) {
     if (outFile.tellp() == 0) { // Write header if file is empty
-        outFile << "#Duration (μs), DataSize (MB), Throughput (MB/s)\n";
+        outFile << "Duration (μs), DataSize (MB), Throughput (MB/s)\n";
     }
     // Write data in CSV format
     outFile << duration << ", " << dataSizeMB << ", " << throughput << "\n";
@@ -368,4 +359,3 @@ bool FilterTimeFrameSliceABC::ParseMessages(FairMQParts& inParts)
     }
     return true;
 }
-

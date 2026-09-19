@@ -858,6 +858,14 @@ bool FltCoin::ConditionalRun()
 		fltHeader->timeSec = sec;
 		fltHeader->timeUSec = usec;
 
+		if (fltheader.magic == Filter::v0::MAGIC) {
+		std::cout << "Using Filter::v0::Header, size: " << sizeof(Filter::v0::Header) << " bytes" << std::endl;
+		} else if (fltheader.magic == Filter::v1::MAGIC) {
+			std::cout << "Using Filter::v1::Header, size: " << sizeof(Filter::v1::Header) << " bytes" << std::endl;
+		} else {
+			std::cout << "Unknown Filter::Header version." << std::endl;
+		}
+
 		outParts.AddPart(MessageUtil::NewMessage(*this, std::move(fltHeader)));
 
 		//Copy

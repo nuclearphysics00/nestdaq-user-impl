@@ -48,6 +48,7 @@ public:
       static constexpr std::string_view DQMChannelName {"out-chan-name"};
       static constexpr std::string_view PollTimeout        {"poll-timeout"};
       static constexpr std::string_view SplitMethod        {"split"};
+      static constexpr std::string_view EvaluationMode     {"evaluation-mode"};
    };
 
 protected:
@@ -82,6 +83,9 @@ protected:
    uint32_t fDirection {0};  
    int fPollTimeoutMS  {0}; 
    int fSplitMethod    {0};
+
+   // Evaluation mode flag
+   bool EvaluationMode {false};
 };
 
 #endif  // NESTDAQ_FILTERTIMEFRAMESLICEABC_H

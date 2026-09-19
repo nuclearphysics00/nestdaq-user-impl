@@ -31,7 +31,7 @@ namespace bpo = boost::program_options;
 FilterTimeFrameSliceByTracking::FilterTimeFrameSliceByTracking()
 : minClusterSize(3), minClusterCountPerPlane(1)
 {
-    // 初期化コード
+    // 初期化
     fCos = {1.0, 0.0, -1.0, 0.0};
     fSin = {0.0, 1.0, 0.0, -1.0};
     fZ = {1.0, 2.0, 3.0, 4.0};  // 適切な値に設定

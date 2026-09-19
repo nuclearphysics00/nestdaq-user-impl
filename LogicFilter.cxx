@@ -8,7 +8,7 @@
 
 #include <fairmq/Device.h>
 #include <fairmq/runDevice.h>
-
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -30,7 +30,7 @@
 #include "SignalParser.cxx"
 #include "KTimer.cxx"
 #include "Trigger.cxx"
-
+#define OUTPUT_COUNTOFTRIGGER 0
 
 //std::atomic<int> gQdepth = 0;
 
@@ -908,6 +908,14 @@ int LogicFilter::AddFilterMessage(
 
 	//add FLT Header
 	auto fltHeader = std::make_unique<struct Filter::Header>();
+
+		if (fltHeader->magic == Filter::v0::MAGIC) {
+	std::cout << "Using Filter::v0::Header, size: " << sizeof(Filter::v0::Header) << " bytes" << std::endl;
+	} else if (fltHeader->magic == Filter::v1::MAGIC) {
+		std::cout << "Using Filter::v1::Header, size: " << sizeof(Filter::v1::Header) << " bytes" << std::endl;
+	} else {
+		std::cout << "Unknown Filter::Header version." << std::endl;
+	}
 	fltHeader->magic = Filter::MAGIC;
 	fltHeader->length = flt_len;
 	fltHeader->timeFrameId = tf_id;
@@ -920,6 +928,7 @@ int LogicFilter::AddFilterMessage(
 	outParts.AddPart(MessageUtil::NewMessage(*this, std::move(fltHeader)));
 
 	flt_data_len += sizeof(struct Filter::Header);
+
 
 	//add FLT data
 	for (auto &v : fltdata) {
@@ -1160,6 +1169,16 @@ bool LogicFilter::ConditionalRun()
 			//int_hits = 0;
 			//int_processed_hbf = 0;
 		}
+			#if OUTPUT_COUNTOFTRIGGER
+				std::ofstream outfile("trigger_counts.txt", std::ios::app);
+				if (outfile.is_open()) {
+					// TimeFrame ID: tf_tf_id, Total Triggers: totalhits
+					outfile << tf_tf_id << ", " << totalhits << std::endl;
+					outfile.close();
+				} else {
+					LOG(error) << "Failed to open trigger_counts.txt for writing.";
+				}
+			#endif
 
 		#if 0
 		//Modify SubTimeFrameHeader

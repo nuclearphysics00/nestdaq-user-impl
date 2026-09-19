@@ -39,6 +39,11 @@ private:
    int totalAccepted;
    int DeterminePlane(uint64_t fem, int ch);
    bool Chargelogic(const std::map<int, std::tuple<int, int>>& chargeSums);
+   static uint64_t eventID; 
+protected:   
+   virtual void InitTask() override;
+   double fCutThreshold;
+
 };
 
 #endif  // NESTDAQ_TIMEFRAMESLICERBYTOT_H
